@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Pi Agent 核心原理和实践</title>
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --theme-color: #166534;
+      --text-strong: #17211b;
+      --text-muted: #506057;
+      --surface: #fbfcfb;
+      --surface-soft: #f3f7f4;
+      --line: #d9e4dc;
+      --code-bg: #eef5f0;
+    }
+
+    body {
+      background:
+        linear-gradient(180deg, rgba(243, 247, 244, 0.8), rgba(255, 255, 255, 0) 260px),
+        var(--surface);
+      color: var(--text-strong);
+      font-size: 16px;
+      overflow-x: hidden;
+    }
+
+    html {
+      overflow-x: hidden;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: #f7faf7;
+    }
+
+    .sidebar ul li a {
+      border-radius: 6px;
+      color: #314139;
+      line-height: 1.55;
+      margin: 1px 12px;
+      padding: 4px 8px;
+    }
+
+    .sidebar ul li.active > a {
+      background: #e7f2ea;
+      color: #14532d;
+      font-weight: 600;
+    }
+
+    .sidebar ul li.open > a {
+      color: #14532d;
+      font-weight: 600;
+    }
+
+    .sidebar ul ul {
+      margin: 4px 0 8px;
+    }
+
+    .sidebar ul ul a {
+      color: #5d6c63;
+      font-size: 13px;
+      margin-left: 24px;
+      padding-bottom: 3px;
+      padding-top: 3px;
+    }
+
+    .sidebar ul ul li.active > a {
+      background: #edf6ef;
+      color: #166534;
+    }
+
+    .sidebar strong {
+      color: #1f3428;
+      display: block;
+      font-size: 13px;
+      letter-spacing: 0;
+      margin: 18px 18px 6px;
+    }
+
+    .markdown-section {
+      box-sizing: border-box;
+      max-width: 960px;
+      padding-bottom: 80px;
+    }
+
+    .markdown-section h1 {
+      color: var(--text-strong);
+      font-size: 38px;
+      letter-spacing: 0;
+      line-height: 1.18;
+      margin-top: 20px;
+    }
+
+    .markdown-section h2 {
+      border-bottom: 1px solid var(--line);
+      color: var(--text-strong);
+      font-size: 24px;
+      letter-spacing: 0;
+      margin-top: 44px;
+      padding-bottom: 10px;
+    }
+
+    .markdown-section h3 {
+      color: #24382d;
+      font-size: 18px;
+      letter-spacing: 0;
+      margin-top: 28px;
+    }
+
+    .markdown-section p,
+    .markdown-section li {
+      color: var(--text-muted);
+      line-height: 1.82;
+    }
+
+    .markdown-section table {
+      display: table;
+      width: 100%;
+    }
+
+    .markdown-section table tr {
+      border-top: 1px solid var(--line);
+    }
+
+    .markdown-section table th {
+      background: var(--surface-soft);
+      color: #24382d;
+      font-weight: 600;
+    }
+
+    .markdown-section table td,
+    .markdown-section table th {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .markdown-section code {
+      background: var(--code-bg);
+      border-radius: 4px;
+      color: #164e2b;
+      font-size: 0.92em;
+    }
+
+    .markdown-section pre {
+      background: #111b14;
+      border-radius: 8px;
+      box-shadow: none;
+    }
+
+    .markdown-section pre > code {
+      background: transparent;
+      color: #eaf4ec;
+    }
+
+    .app-name-link {
+      color: #143820;
+      font-weight: 700;
+    }
+
+    .app-name-link img {
+      width: 64px;
+    }
+
+    .search input {
+      border-radius: 6px;
+    }
+
+    .pagination-item-label {
+      color: #496155;
+    }
+
+    @media (max-width: 768px) {
+      .github-corner {
+        display: none;
+      }
+
+      .markdown-section {
+        padding: 24px 16px 80px;
+      }
+
+      .markdown-section h1 {
+        font-size: 30px;
+        line-height: 1.22;
+      }
+
+      .markdown-section h2 {
+        font-size: 21px;
+      }
+
+      .markdown-section table {
+        display: block;
+        overflow-x: auto;
+        white-space: normal;
+      }
+
+      .markdown-section td,
+      .markdown-section th,
+      .markdown-section p,
+      .markdown-section li {
+        overflow-wrap: anywhere;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">Loading...</div>
+  <script>
+    window.$docsify = {
+      name: 'how-to-Pi',
+      repo: 'earendil-works/pi',
+      loadSidebar: true,
+      subMaxLevel: 0,
+      auto2top: true,
+      relativePath: false,
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: '搜索',
+        noData: '没有结果',
+        depth: 4
+      },
+      pagination: {
+        previousText: '上一章',
+        nextText: '下一章',
+        crossChapter: true
+      },
+      copyCode: {
+        buttonText: 'Copy',
+        errorText: 'Error',
+        successText: 'Copied'
+      },
+      mermaidConfig: {
+        startOnLoad: true,
+        theme: 'neutral'
+      },
+      plugins: [
+        function(hook) {
+          function normalizeRoute() {
+            var hash = window.location.hash;
+            if (!hash || hash.indexOf('.md') === -1) return;
+
+            var normalized = hash.replace(/\.md(?=$|[?#])/g, '');
+            if (normalized !== hash) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search + normalized);
+            }
+          }
+
+          function renderMermaid() {
+            if (!window.mermaid) return false;
+
+            window.mermaid.initialize({
+              startOnLoad: false,
+              theme: 'neutral',
+              securityLevel: 'loose'
+            });
+
+            var blocks = document.querySelectorAll('pre[data-lang="mermaid"], pre code.lang-mermaid, pre code.language-mermaid');
+            blocks.forEach(function(block, index) {
+              var pre = block.tagName === 'PRE' ? block : block.closest('pre');
+              var source = (block.textContent || '').trim();
+              if (!pre || !source) return;
+
+              var container = document.createElement('div');
+              container.className = 'mermaid';
+              container.textContent = source;
+              container.setAttribute('data-mermaid-index', String(index));
+              pre.replaceWith(container);
+            });
+
+            var diagrams = document.querySelectorAll('.mermaid:not([data-processed="true"])');
+            if (diagrams.length > 0 && window.mermaid.run) {
+              window.mermaid.run({ nodes: diagrams });
+            } else if (diagrams.length > 0 && window.mermaid.init) {
+              window.mermaid.init(undefined, diagrams);
+            }
+
+            return true;
+          }
+
+          function scrollToHash() {
+            var hash = window.location.hash;
+            var anchorIndex = hash.indexOf('?id=');
+            if (anchorIndex === -1) return;
+
+            var id = decodeURIComponent(hash.slice(anchorIndex + 4).split('&')[0]);
+            var target = document.getElementById(id);
+            if (!target) return;
+
+            setTimeout(function() {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 80);
+          }
+
+          function scrollToHeadingId(id, href) {
+            var target = document.getElementById(id);
+            if (!target) return false;
+
+            document.querySelectorAll('.sidebar ul.generated-toc li').forEach(function(item) {
+              item.classList.remove('active');
+            });
+
+            var activeLink = document.querySelector('.sidebar ul.generated-toc a[data-target-id="' + id + '"]');
+            if (activeLink) {
+              activeLink.closest('li').classList.add('active');
+            }
+
+            if (href) {
+              window.history.replaceState(null, '', href);
+            }
+
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return true;
+          }
+
+          function currentRoutePath() {
+            var hash = window.location.hash || '#/';
+            var route = hash.slice(1).split('?')[0].split('#')[0];
+            route = decodeURIComponent(route);
+            return route
+              .replace(/^\.\//, '/')
+              .replace(/\.md$/, '')
+              .replace(/\/README$/, '/')
+              .replace(/\/$/, '') || '/';
+          }
+
+          function normalizeSidebarHref(href) {
+            if (!href) return '';
+            var route = href.replace(/^#/, '').split('?')[0].split('#')[0];
+            route = decodeURIComponent(route);
+            return route
+              .replace(/^\.\//, '/')
+              .replace(/^\/\.\//, '/')
+              .replace(/\.md$/, '')
+              .replace(/\/README$/, '/')
+              .replace(/\/$/, '') || '/';
+          }
+
+          function updateSidebarNavigation() {
+            var sidebar = document.querySelector('.sidebar');
+            var section = document.querySelector('.markdown-section');
+            if (!sidebar || !section) return;
+
+            var route = currentRoutePath();
+            var currentItem = null;
+
+            sidebar.querySelectorAll('ul.generated-toc').forEach(function(toc) {
+              toc.remove();
+            });
+
+            sidebar.querySelectorAll('li').forEach(function(item) {
+              item.classList.remove('active', 'open');
+            });
+
+            sidebar.querySelectorAll('a[href]').forEach(function(link) {
+              if (link.closest('ul.generated-toc')) return;
+
+              var href = link.getAttribute('href');
+              var normalized = normalizeSidebarHref(href);
+              var cleanedHref = href
+                .replace(/^#\/\.\//, '#/')
+                .replace(/\.md(?=$|[?#])/g, '');
+
+              if (cleanedHref !== href) {
+                link.setAttribute('href', cleanedHref);
+              }
+
+              if (normalized === route) {
+                currentItem = link.closest('li');
+                currentItem.classList.add('active', 'open');
+              }
+            });
+
+            if (!currentItem) return;
+
+            var oldToc = currentItem.querySelector('ul.generated-toc');
+            if (oldToc) oldToc.remove();
+
+            var headings = Array.prototype.slice.call(section.querySelectorAll('h2, h3'));
+            if (headings.length === 0) return;
+
+            var toc = document.createElement('ul');
+            toc.className = 'generated-toc';
+
+            headings.forEach(function(heading) {
+              if (!heading.id) return;
+
+              var item = document.createElement('li');
+              if (heading.tagName === 'H3') {
+                item.className = 'toc-level-3';
+              }
+
+              var link = document.createElement('a');
+              link.href = window.location.hash.split('?')[0] + '?id=' + encodeURIComponent(heading.id);
+              link.setAttribute('data-target-id', heading.id);
+              link.textContent = heading.textContent;
+              link.onclick = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) {
+                  event.stopImmediatePropagation();
+                }
+                scrollToHeadingId(heading.id, link.href);
+                return false;
+              };
+
+              item.appendChild(link);
+              toc.appendChild(item);
+            });
+
+            currentItem.appendChild(toc);
+          }
+
+          hook.beforeEach(function(content, next) {
+            normalizeRoute();
+            next(content);
+          });
+
+          hook.doneEach(function() {
+            normalizeRoute();
+            updateSidebarNavigation();
+            scrollToHash();
+
+            var attempts = 0;
+            var timer = window.setInterval(function() {
+              attempts += 1;
+              if (renderMermaid() || attempts >= 20) {
+                window.clearInterval(timer);
+              }
+            }, 100);
+
+            window.setTimeout(updateSidebarNavigation, 120);
+          });
+
+          window.addEventListener('click', function(event) {
+            var link = event.target && event.target.closest
+              ? event.target.closest('.sidebar ul.generated-toc a')
+              : null;
+            if (!link) return;
+
+            var href = link.getAttribute('href') || '';
+            var idIndex = href.indexOf('?id=');
+            if (idIndex === -1) return;
+
+            var id = decodeURIComponent(href.slice(idIndex + 4));
+            var target = document.getElementById(id);
+            if (!target) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.stopImmediatePropagation) {
+              event.stopImmediatePropagation();
+            }
+
+            scrollToHeadingId(id, href);
+          }, true);
+
+          window.addEventListener('hashchange', function() {
+            window.setTimeout(function() {
+              updateSidebarNavigation();
+              scrollToHash();
+              renderMermaid();
+            }, 80);
+          });
+        }
+      ]
+    };
+  </script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+</body>
+</html>

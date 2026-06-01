@@ -1,0 +1,11 @@
+{
+  "name": "how-to-pi-repo-review-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Example Pi package that exposes a repository review skill.",
+  "pi": {
+    "skills": [
+      "skills/repo-review"
+    ]
+  }
+}
