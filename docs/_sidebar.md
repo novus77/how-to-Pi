@@ -1,4 +1,4 @@
-- [how-to-Pi](/home.md)
+- [How-To-Pi](/home.md)
   - [前言](/Preface.md)
 
 - <strong>第一部分：Pi Agent 与 Coding Agent 基础</strong>

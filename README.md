@@ -1,4 +1,4 @@
-# how-to-Pi
+# How-To-Pi
 
 「Pi Agent 核心原理和实践」是一套面向工程师的中文教程，目标不是复述 Pi 官方文档，而是把 Pi 当作一个可扩展的 terminal coding agent harness 来拆解：agent loop、tool calling、session tree、context compaction、extensions、skills、packages、SDK、RPC 和 JSON event stream。
 
